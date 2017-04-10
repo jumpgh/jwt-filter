@@ -4,7 +4,19 @@ jwt.io
 
 Настройка фильтра
 
-копируем pubcookie-1.0-SNAPSHOT.jar и зависимости commons-io-2.4.jar, jackson-core-2.4.2.jar, javax.servlet-api-3.1.0.jar, jackson-annotations-2.4.0.jar, jackson-databind-2.4.2.jar, jjwt-0.6.0.jar, slf4j-api-1.7.2.jar в WEB_INF/lib приложения. В web.xml добавляем фильтр
+копируем pubcookie-1.0-SNAPSHOT.jar и зависимости 
+```
+commons-io-2.4.jar, 
+jackson-core-2.4.2.jar, 
+javax.servlet-api-3.1.0.jar, 
+jackson-annotations-2.4.0.jar, 
+jackson-databind-2.4.2.jar, 
+jjwt-0.6.0.jar, 
+slf4j-api-1.7.2.jar
+```
+в WEB_INF/lib приложения. 
+
+В web.xml добавляем фильтр
 
 ```
 <filter>
@@ -32,6 +44,4 @@ jwt.io
 </filter-mapping>
 ```
 
-
-
-
+Фильтр проверяет куку и складывает в сессию параметры usr, usr-id, usr-name
