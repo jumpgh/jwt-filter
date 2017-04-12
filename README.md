@@ -37,6 +37,15 @@ slf4j-api-1.7.2.jar
         <param-name>trustedHosts</param-name>
         <param-value>localhost 127.0.0.1</param-value>
     </init-param>
+    <!-- enable guest user if allowed -->
+    <init-param>
+        <param-name>guestId</param-name>
+        <param-value>0</param-value>
+    </init-param>
+    <init-param>
+        <param-name>guestName</param-name>
+        <param-value>гость</param-value>
+    </init-param>
 </filter>
 <filter-mapping>
     <filter-name>jwt-filter</filter-name>

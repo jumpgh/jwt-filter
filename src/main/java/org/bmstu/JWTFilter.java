@@ -25,6 +25,10 @@ public class JWTFilter implements Filter {
     private String LOGIN_PAGE;
     private String [] TRUSTED_HOSTS;
     private String SERVERPUBKEY;
+    private boolean ALLOWGUEST;
+    private String GUEST_ID;
+    private String GUEST_NAME;
+
     private PublicKey pubKey;
     private JwtParser parser;
     
@@ -36,6 +40,10 @@ public class JWTFilter implements Filter {
         COOKIE_NAME = filterConfig.getInitParameter("cookieName");
         TRUSTED_HOSTS = filterConfig.getInitParameter("trustedHosts").split(" ");
         SERVERPUBKEY = filterConfig.getInitParameter("serverPubKey");
+        GUEST_ID = filterConfig.getInitParameter("guestId");
+        GUEST_NAME = filterConfig.getInitParameter("guestName");
+        ALLOWGUEST = (GUEST_ID != null && GUEST_NAME != null);
+
 
         try {
             byte[] keyBytes = IOUtils.toByteArray(this.getClass()
@@ -77,14 +85,23 @@ public class JWTFilter implements Filter {
                                             .filter(c -> c.getName().equalsIgnoreCase(COOKIE_NAME)).findFirst();
 
         if(!cookie.isPresent()) {
-            if(Arrays.stream(TRUSTED_HOSTS).filter(h -> h.equalsIgnoreCase(request.getRemoteHost())).findFirst().isPresent()) {
+            if(Arrays.stream(TRUSTED_HOSTS)
+                    .filter(h -> h.equalsIgnoreCase(request.getRemoteHost()))
+                    .findFirst()
+                    .isPresent()) {
                 logger.info("host {} host is trusted {} bypassing checks",request.getRemoteHost(), TRUSTED_HOSTS);
                 chain.doFilter(request, response);
             } else {
-                ((HttpServletResponse)response).sendRedirect(LOGIN_PAGE + "?back=" + URLEncoder.encode(REDIRECT_PAGE.toString()));
+                if(ALLOWGUEST) {
+                    ((HttpServletRequest)request).getSession().invalidate();
+                    ((HttpServletRequest)request).getSession().setAttribute("usr-id", GUEST_ID);
+                    ((HttpServletRequest)request).getSession().setAttribute("usr-name", GUEST_NAME);
+                } else {
+                    ((HttpServletResponse)response).sendRedirect(LOGIN_PAGE + "?back=" + URLEncoder.encode(REDIRECT_PAGE.toString()));    
+                }
             }
         } else {
-            try { 
+            try {
                 Claims claims = parser.parseClaimsJws(cookie.get().getValue()).getBody();
                 Date today = new Date();
                 if(today.after(claims.getExpiration()) || today.before(claims.getNotBefore())) {
@@ -94,18 +111,14 @@ public class JWTFilter implements Filter {
                 }
                 logger.warn("got cookie " + claims.get("usr"));
                 //if(((HttpServletRequest)request).getSession().hasAttrinbute("usr"))
-                if(!claims.get("usr", Map.class).get("id").equals(
-                    ((HttpServletRequest)request).getSession().getAttribute("usr-id"))) {
+                if(!claims.get("usr", Map.class).get("id")
+                    .equals(((HttpServletRequest)request).getSession().getAttribute("usr-id"))) {
 
                     logger.info("User switched or empty. Invalidating session.");
-
                     ((HttpServletRequest)request).getSession().invalidate();
-                    ((HttpServletRequest)request).getSession()
-                        .setAttribute("usr", claims.get("usr"));
-                    ((HttpServletRequest)request).getSession()
-                        .setAttribute("usr-id", claims.get("usr", Map.class).get("id"));
-                    ((HttpServletRequest)request).getSession()
-                        .setAttribute("usr-name", claims.get("usr", Map.class).get("name"));
+                    ((HttpServletRequest)request).getSession().setAttribute("usr", claims.get("usr"));
+                    ((HttpServletRequest)request).getSession().setAttribute("usr-id", claims.get("usr", Map.class).get("id"));
+                    ((HttpServletRequest)request).getSession().setAttribute("usr-name", claims.get("usr", Map.class).get("name"));
                 }                
                 chain.doFilter(request, response);
             } catch (SignatureException se) {
