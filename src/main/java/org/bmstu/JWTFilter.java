@@ -92,7 +92,8 @@ public class JWTFilter implements Filter {
                 logger.info("host {} host is trusted {} bypassing checks",request.getRemoteHost(), TRUSTED_HOSTS);
                 chain.doFilter(request, response);
             } else {
-                if(ALLOWGUEST) {
+                if(ALLOWGUEST && 
+                    !GUEST_ID.equals(((HttpServletRequest)request).getSession().getAttribute("usr-id"))) {
                     ((HttpServletRequest)request).getSession().invalidate();
                     ((HttpServletRequest)request).getSession().setAttribute("usr-id", GUEST_ID);
                     ((HttpServletRequest)request).getSession().setAttribute("usr-name", GUEST_NAME);
